@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 require("dotenv").config();
-require("./db/mongoose");
+require("../db/mongoose");
 
 /**
  * Module dependencies.

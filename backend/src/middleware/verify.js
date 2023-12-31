@@ -17,7 +17,7 @@ async function verifyAccessToken(req, res, next) {
         jwt.verify(accessToken, process.env.SECRET_ACCESS_TOKEN, async (err, decoded) => {
             if (err) {
                 return res
-                    .status(401)
+                    .status(403)
                     .json({ 
                         status: "error",
                         data: {},

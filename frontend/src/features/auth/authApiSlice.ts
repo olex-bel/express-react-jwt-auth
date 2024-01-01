@@ -1,8 +1,6 @@
-import { apiSlice } from "../../app/api/apiSlice";
-import type { UserType } from "./authSlice";
+import { apiSlice } from "../../app/api/apiSlice"
 
 type ResponseDataType = {
-    user: UserType; 
     token: string;
 }
 
@@ -15,12 +13,14 @@ export const authApiSlice = apiSlice.injectEndpoints({
                 body: { ...credentials }
             }),
             transformResponse: (response: { data : ResponseDataType } ) => response.data,
+            invalidatesTags: ["User"],
         }),
         logout: builder.mutation({
             query: () => ({
                 url: "/auth/logout",
                 method: "POST",
             }),
+            invalidatesTags: ["User"],
         }), 
     })
 })

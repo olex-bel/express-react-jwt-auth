@@ -16,7 +16,7 @@ router.post(
     authController.login
 );
 
-router.post(
+router.get(
     "/refresh",
     verifyRefreshToken,
     authController.refresh

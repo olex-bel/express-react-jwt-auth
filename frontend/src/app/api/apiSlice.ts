@@ -1,8 +1,12 @@
+
+import { Mutex } from 'async-mutex'
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react"
-import { setCredentials, logOut } from "../../features/auth/authSlice"
+import { setToken, logOut } from "../../features/auth/authSlice"
+import { saveTokenToLocalStorage, clearTokenFromLocalStorage } from "../../utils/tokenHelper"
 import type { RootState } from "../../app/store"
 import type { BaseQueryFn } from "@reduxjs/toolkit/query/react"
 
+const mutex = new Mutex()
 const baseQuery = fetchBaseQuery({
     baseUrl: import.meta.env.VITE_ENPOINT_URL,
     credentials: "include",
@@ -17,22 +21,33 @@ const baseQuery = fetchBaseQuery({
 })
 
 const baseQueryWithReauth : BaseQueryFn = async (args, api, extraOptions) => {
+    await mutex.waitForUnlock()
+
     let result = await baseQuery(args, api, extraOptions)
 
-    if (result?.error && "originalStatus" in result.error && result.error.originalStatus === 403) {
-        // send refresh token to get new access token 
-        const refreshResult = await baseQuery("/auth/refresh", api, extraOptions)
+    if (result?.error && "status" in result.error && result.error.status === 403) {
+        if (!mutex.isLocked()) {
+            const release = await mutex.acquire()
 
-        if (refreshResult?.data) {
-            const data = refreshResult.data as { token : string }
-            const state = api.getState() as RootState
-            const user = state.auth.user
-            // store the new token 
-            api.dispatch(setCredentials({ token: data.token, user }))
-            // retry the original query with new access token 
-            result = await baseQuery(args, api, extraOptions)
+            try {
+                const refreshResult = await baseQuery("/auth/refresh", api, extraOptions)
+
+                if (refreshResult?.data) {
+                    const fetchData = refreshResult.data as { data: {token : string} }
+                    const data = fetchData.data
+                    api.dispatch(setToken({ token: data.token }))
+                    saveTokenToLocalStorage(data.token)
+                    result = await baseQuery(args, api, extraOptions)
+                } else {
+                    api.dispatch(logOut())
+                    clearTokenFromLocalStorage()
+                }
+            } finally {
+                release()
+            }
         } else {
-            api.dispatch(logOut())
+            await mutex.waitForUnlock()
+            result = await baseQuery(args, api, extraOptions)
         }
     }
 
@@ -41,5 +56,6 @@ const baseQueryWithReauth : BaseQueryFn = async (args, api, extraOptions) => {
 
 export const apiSlice = createApi({
     baseQuery: baseQueryWithReauth,
-    endpoints: () => ({})
+    endpoints: () => ({}),
+    tagTypes: ["User"],
 })

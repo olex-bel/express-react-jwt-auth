@@ -11,7 +11,8 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined"
 import { Form, useNavigate, Link as RouterLink } from "react-router-dom"
 import { useDispatch } from "react-redux"
 import { useLoginMutation } from "../../features/auth/authApiSlice"
-import { setCredentials } from "../../features/auth/authSlice"
+import { saveTokenToLocalStorage } from "../../utils/tokenHelper"
+import { setToken } from "../../features/auth/authSlice"
 
 export default function LoginForm() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -35,8 +36,8 @@ export default function LoginForm() {
 
     try {
       const data = await login({ email, password }).unwrap();
-      console.log(data);
-      dispatch(setCredentials({...data}))
+      dispatch(setToken({...data}))
+      saveTokenToLocalStorage(data.token)
       navigate("/")
     } catch (err) {
       if (err && typeof err === "object" && "originalStatus" in err) {

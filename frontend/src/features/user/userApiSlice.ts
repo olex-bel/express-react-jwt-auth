@@ -1,10 +1,24 @@
 import { apiSlice } from "../../app/api/apiSlice"
-import type { UserType } from "../auth/authSlice"
 
-export const authApiSlice = apiSlice.injectEndpoints({
+type UserType = {
+    name: string;
+    email: string;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+
+
+
+export const userApiSlice = apiSlice.injectEndpoints({
     endpoints: builder => ({
         getUser: builder.query<UserType, void>({
             query: () => "users/me",
+            transformResponse: (response: { data: { user: UserType} } ) => {
+                console.log(response.data.user)
+                return response.data.user
+            },
+            providesTags: ["User"],
         }),
         register: builder.mutation({
             query: userData => ({
@@ -19,4 +33,4 @@ export const authApiSlice = apiSlice.injectEndpoints({
 export const {
     useGetUserQuery,
     useRegisterMutation
-} = authApiSlice
+} = userApiSlice
